@@ -1,0 +1,38 @@
+let n    = 8;
+let raio = 4;
+
+material azul   { diffuse rgb(0.0, 0.34, 0.72); lighting phong { shininess 60; } }
+material branco { diffuse white;                lighting per_vertex; }
+
+template pilar(h: num, mat: material) {
+    box p : mat {
+        scale     (0.5, h, 0.5);
+        translate (0, h / 2, 0);
+    }
+}
+
+scene templo {
+    for i in 0..n {                 // i = 0, 1, ..., n-1
+        let ang = i * 360 / n;
+        if i % 2 == 0 {
+            pilar(3, azul)   { rotate ang around (0, 1, 0); translate (raio, 0, 0); }
+        } else {
+            pilar(2, branco) { rotate ang around (0, 1, 0); translate (raio, 0, 0); }
+        }
+    }
+}
+
+scene chao = grid length 20 divisions 2;
+
+camera cam {
+    position (8, 6, 8);
+    look_at  (0, 1, 0);
+}
+
+light sol directional { direction (2, 1, 2); }
+
+pass render {
+    draw   templo, chao;
+    camera cam;
+    lights sol;
+}

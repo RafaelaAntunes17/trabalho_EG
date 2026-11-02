@@ -1,0 +1,525 @@
+// ---------- Atributos ----------
+SA(start)          { nomes : list, usos : list, tabela : dict, materiais : dict }
+SA(decl)           { nomes : list, usos : list, unidades : dict }
+
+SA(letdecl)        { nome : str, tipo : any, usos : list }
+SA(texturedecl)    { nomes : list }
+SA(materialdecl)   { nomes : list, usos : list, modos : list, papeis : list, unidades : dict }
+SA(matitem)        { usos : list, modo : str, papel : str, textura : bool }
+SA(diffuse)        { usos : list }
+SA(matlighting)    { usos : list, modo : str }
+SA(lightingmode)   { modo : str }
+SA(lightingparams) { usos : list, nomes : list }
+IA(lightingparams) { modo : str }
+SA(lightingparam)  { usos : list, nome : str }
+SA(shininess)      { usos : list }
+SA(levels)         { usos : list }
+SA(layer)          { usos : list, papel : str, textura : bool }
+SA(layerrole)      { papel : str }
+SA(layersource)    { usos : list, textura : bool }
+SA(noise)          { usos : list }
+
+SA(scenedecl)      { nomes : list, usos : list }
+SA(scenesource)    { usos : list }
+SA(grid)           { usos : list }
+SA(sceneitems)     { usos : list, locais : dict }
+IA(sceneitems)     { env : dict }
+SA(sceneitem)      { usos : list, locais : dict }
+IA(sceneitem)      { env : dict }
+SA(object)         { usos : list }
+SA(templatecall)   { usos : list }
+SA(objectbody)     { usos : list }
+SA(transform)      { usos : list }
+SA(translate)      { usos : list }
+SA(scale)          { usos : list }
+SA(rotate)         { usos : list }
+SA(scenefor)       { usos : list }
+IA(scenefor)       { env : dict }
+SA(sceneif)        { usos : list }
+IA(sceneif)        { env : dict }
+SA(sceneblock)     { usos : list }
+IA(sceneblock)     { env : dict }
+SA(templatedecl)   { nomes : list, usos : list }
+SA(params)         { locais : dict, tipos : tuple }
+SA(param)          { nome : str, tipo : str }
+SA(type)           { tipo : str }
+SA(args)           { usos : list, tipos : tuple }
+
+SA(cameradecl)     { nomes : list, usos : list }
+SA(cameraprop)     { usos : list }
+SA(position)       { usos : list }
+SA(lookat)         { usos : list }
+SA(direction)      { usos : list }
+SA(near)           { usos : list }
+SA(far)            { usos : list }
+SA(fov)            { usos : list }
+SA(lightdecl)      { nomes : list, usos : list }
+SA(lightprop)      { usos : list }
+SA(lightcolor)     { usos : list }
+SA(backgrounddecl) { usos : list }
+
+SA(passdecl)       { nomes : list, usos : list }
+SA(passitem)       { usos : list }
+SA(draw)           { usos : list }
+SA(passcamera)     { usos : list }
+SA(passlights)     { usos : list }
+SA(passlighting)   { usos : list }
+SA(passmaterial)   { usos : list }
+SA(passif)         { usos : list }
+SA(passblock)      { usos : list }
+SA(idlist)         { nomes : list }
+
+SA(num)            { usos : list, nome : str }
+SA(term)           { usos : list, nome : str }
+SA(factor)         { usos : list, nome : str }
+SA(vec3)           { usos : list }
+SA(color)          { usos : list }
+SA(cond)           { usos : list }
+SA(vec3val)        { usos : list }
+SA(colorval)       { usos : list }
+SA(value)          { usos : list, tipo : any }
+
+// ---------- Programa ----------
+start : project? decl*
+ER {
+  start.nomes = sum([d.nomes for d in @decl], []);
+  start.usos = sum([d.usos for d in @decl], []);
+  start.tabela = tipos_globais(start.nomes);
+  start.materiais = {m: u for d in @decl for m, u in d.unidades.items()};
+}
+CC {
+  sem_repetidos([n for n, t, deps in start.nomes]) -> "Nome declarado mais de uma vez";
+  not (set(n for n, t, deps in start.nomes) & set(PRE)) -> "As cores pré-definidas não podem ser declaradas de novo";
+  not tem_ciclo({n: deps for n, t, deps in start.nomes if not compativel(t, K_TEMPLATE)}) -> "Dependência circular entre let";
+  not tem_ciclo({n: deps for n, t, deps in start.nomes if compativel(t, K_TEMPLATE)}) -> "Template recursivo";
+  all(n in start.tabela for n, e, a in start.usos) -> "Nome não declarado";
+  all(compativel(start.tabela[n], e) for n, e, a in start.usos if start.tabela.get(n) is not None) -> "Tipo errado";
+  argumentos_ok(start.usos, start.tabela) -> "Argumentos do template com tipo errado";
+}
+
+project : "project" STRING ";"
+
+decl : letdecl
+ER { decl.nomes = [(letdecl.nome, letdecl.tipo, set(n for n, e, a in letdecl.usos))]; decl.usos = letdecl.usos; decl.unidades = {}; }
+     | texturedecl
+ER { decl.nomes = texturedecl.nomes; decl.usos = []; decl.unidades = {}; }
+     | materialdecl
+ER { decl.nomes = materialdecl.nomes; decl.usos = materialdecl.usos; decl.unidades = materialdecl.unidades; }
+     | scenedecl
+ER { decl.nomes = scenedecl.nomes; decl.usos = scenedecl.usos; decl.unidades = {}; }
+     | templatedecl
+ER { decl.nomes = templatedecl.nomes; decl.usos = templatedecl.usos; decl.unidades = {}; }
+     | cameradecl
+ER { decl.nomes = cameradecl.nomes; decl.usos = cameradecl.usos; decl.unidades = {}; }
+     | lightdecl
+ER { decl.nomes = lightdecl.nomes; decl.usos = lightdecl.usos; decl.unidades = {}; }
+     | backgrounddecl
+ER { decl.nomes = []; decl.usos = backgrounddecl.usos; decl.unidades = {}; }
+     | passdecl
+ER { decl.nomes = passdecl.nomes; decl.usos = passdecl.usos; decl.unidades = {}; }
+
+letdecl : "let" ID "=" value ";"
+ER { letdecl.nome = str(ID); letdecl.tipo = value.tipo; letdecl.usos = value.usos; }
+
+// ---------- Texturas e materiais ----------
+texturedecl : "texture" ID "=" STRING MIPMAP? ";"
+ER { texturedecl.nomes = [(str(ID), K_TEXTURE, set())]; }
+
+materialdecl : "material" ID "{" matitem* "}"
+ER {
+  materialdecl.modos = [i.modo for i in @matitem if i.modo is not None];
+  materialdecl.papeis = [i.papel for i in @matitem if i.papel is not None];
+  materialdecl.unidades = {str(ID): {p: u for u, p in enumerate([i.papel for i in @matitem if i.textura])}};
+  materialdecl.nomes = [(str(ID), K_MATERIAL, set())];
+  materialdecl.usos = sum([i.usos for i in @matitem], []);
+}
+CC {
+  len(materialdecl.modos) <= 1 -> "Um material só pode ter um lighting";
+  sem_repetidos(materialdecl.papeis) -> "Camada repetida no material";
+  K_SPECULAR not in materialdecl.papeis or materialdecl.modos == [K_PHONG] -> "A camada specular exige lighting phong";
+  K_NIGHT not in materialdecl.papeis or K_NONE not in materialdecl.modos -> "A camada night exige um modo com luz";
+  K_DAY in materialdecl.papeis or not materialdecl.papeis -> "As camadas specular, night e clouds exigem uma camada day";
+}
+
+matitem : diffuse
+ER { matitem.usos = diffuse.usos; matitem.modo = None; matitem.papel = None; matitem.textura = False; }
+        | matlighting
+ER { matitem.usos = matlighting.usos; matitem.modo = matlighting.modo; matitem.papel = None; matitem.textura = False; }
+        | layer
+ER { matitem.usos = layer.usos; matitem.modo = None; matitem.papel = layer.papel; matitem.textura = layer.textura; }
+
+diffuse : "diffuse" colorval ";"
+ER { diffuse.usos = colorval.usos; }
+
+matlighting : "lighting" lightingmode lightingparams
+ER { lightingparams.modo = lightingmode.modo; matlighting.modo = lightingmode.modo; matlighting.usos = lightingparams.usos; }
+            | "lighting" lightingmode ";"
+ER { matlighting.modo = lightingmode.modo; matlighting.usos = []; }
+
+lightingmode : NONE
+ER { lightingmode.modo = str(NONE); }
+             | PER_VERTEX
+ER { lightingmode.modo = str(PER_VERTEX); }
+             | PHONG
+ER { lightingmode.modo = str(PHONG); }
+             | TOON
+ER { lightingmode.modo = str(TOON); }
+
+lightingparams : "{" lightingparam* "}"
+ER { lightingparams.nomes = [p.nome for p in @lightingparam]; lightingparams.usos = sum([p.usos for p in @lightingparam], []); }
+CC {
+  K_SHININESS not in lightingparams.nomes or lightingparams.modo == K_PHONG -> "shininess só existe em lighting phong";
+  K_LEVELS not in lightingparams.nomes or lightingparams.modo == K_TOON -> "levels só existe em lighting toon";
+}
+
+lightingparam : shininess
+ER { lightingparam.nome = K_SHININESS; lightingparam.usos = shininess.usos; }
+              | levels
+ER { lightingparam.nome = K_LEVELS; lightingparam.usos = levels.usos; }
+
+shininess : "shininess" num ";"
+ER { shininess.usos = num.usos; }
+
+levels : "levels" num ";"
+ER { levels.usos = num.usos; }
+
+layer : "layer" layerrole layersource ";"
+ER { layer.papel = layerrole.papel; layer.textura = layersource.textura; layer.usos = layersource.usos; }
+
+layerrole : DAY
+ER { layerrole.papel = str(DAY); }
+          | SPECULAR
+ER { layerrole.papel = str(SPECULAR); }
+          | NIGHT
+ER { layerrole.papel = str(NIGHT); }
+          | CLOUDS
+ER { layerrole.papel = str(CLOUDS); }
+
+layersource : ID
+ER { layersource.usos = [(str(ID), K_TEXTURE, None)]; layersource.textura = True; }
+            | noise
+ER { layersource.usos = noise.usos; layersource.textura = False; }
+
+noise : "noise" "speed" num
+ER { noise.usos = num.usos; }
+      | "noise"
+ER { noise.usos = []; }
+
+// ---------- Cenas e templates ----------
+scenedecl : "scene" ID "=" scenesource ";"
+ER { scenedecl.nomes = [(str(ID), K_SCENE, set())]; scenedecl.usos = scenesource.usos; }
+          | "scene" ID "{" sceneitems "}"
+ER { sceneitems.env = {}; scenedecl.nomes = [(str(ID), K_SCENE, set())]; scenedecl.usos = sceneitems.usos; }
+
+scenesource : model
+ER { scenesource.usos = []; }
+            | grid
+ER { scenesource.usos = grid.usos; }
+
+model : "model" STRING modeloption*
+
+modeloption : UNITIZE
+            | SWAP_YZ
+
+grid : "grid" "length" num "divisions" num
+ER { grid.usos = num[1].usos + num[2].usos; }
+
+sceneitems : sceneitems sceneitem
+ER {
+  sceneitems[2].env = sceneitems[1].env;
+  sceneitem.env = sceneitems[1].env | sceneitems[2].locais;
+  sceneitems[1].locais = sceneitems[2].locais | sceneitem.locais;
+  sceneitems[1].usos = sceneitems[2].usos + sceneitem.usos;
+}
+CC {
+  not (set(sceneitem.locais) & set(sceneitems[2].locais)) -> "Nome declarado mais de uma vez";
+  not (set(sceneitem.locais) & set(PRE)) -> "As cores pré-definidas não podem ser declaradas de novo";
+}
+           |
+ER { sceneitems.locais = {}; sceneitems.usos = []; }
+
+sceneitem : object
+ER { sceneitem.usos = resto(object.usos, sceneitem.env); sceneitem.locais = {}; }
+CC { tipos_ok(object.usos, sceneitem.env) -> "Tipo errado"; }
+          | templatecall
+ER { sceneitem.usos = resto(templatecall.usos, sceneitem.env); sceneitem.locais = {}; }
+CC { tipos_ok(templatecall.usos, sceneitem.env) -> "Tipo errado"; }
+          | letdecl
+ER { sceneitem.usos = resto(letdecl.usos, sceneitem.env); sceneitem.locais = {letdecl.nome: tipo_local(letdecl.tipo, sceneitem.env)}; }
+CC { tipos_ok(letdecl.usos, sceneitem.env) -> "Tipo errado"; }
+          | scenefor
+ER { scenefor.env = sceneitem.env; sceneitem.usos = resto(scenefor.usos, sceneitem.env); sceneitem.locais = {}; }
+CC { tipos_ok(scenefor.usos, sceneitem.env) -> "Tipo errado"; }
+          | sceneif
+ER { sceneif.env = sceneitem.env; sceneitem.usos = resto(sceneif.usos, sceneitem.env); sceneitem.locais = {}; }
+CC { tipos_ok(sceneif.usos, sceneitem.env) -> "Tipo errado"; }
+
+object : shape ID ":" ID objectbody
+ER { object.usos = [(str(@ID[1]), K_MATERIAL, None)] + objectbody.usos; }
+       | shape ID objectbody
+ER { object.usos = objectbody.usos; }
+
+shape : BOX
+      | SPHERE
+      | SQUARE
+      | AXIS
+
+templatecall : ID "(" args ")" objectbody
+ER { templatecall.usos = [(str(ID), K_TEMPLATE, args.tipos)] + args.usos + objectbody.usos; }
+             | ID "(" ")" objectbody
+ER { templatecall.usos = [(str(ID), K_TEMPLATE, ())] + objectbody.usos; }
+
+objectbody : "{" transform* "}"
+ER { objectbody.usos = sum([t.usos for t in @transform], []); }
+           | ";"
+ER { objectbody.usos = []; }
+
+transform : translate
+ER { transform.usos = translate.usos; }
+          | scale
+ER { transform.usos = scale.usos; }
+          | rotate
+ER { transform.usos = rotate.usos; }
+
+translate : "translate" vec3val ";"
+ER { translate.usos = vec3val.usos; }
+
+scale : "scale" vec3val ";"
+ER { scale.usos = vec3val.usos; }
+
+rotate : "rotate" num "around" vec3val ";"
+ER { rotate.usos = num.usos + vec3val.usos; }
+
+scenefor : "for" ID "in" num ".." num "{" sceneitems "}"
+ER { sceneitems.env = scenefor.env | {str(ID): K_NUM}; scenefor.usos = num[1].usos + num[2].usos + sceneitems.usos; }
+CC { str(ID) not in PRE -> "As cores pré-definidas não podem ser declaradas de novo"; }
+
+sceneif : "if" cond sceneblock
+ER { sceneblock.env = sceneif.env; sceneif.usos = cond.usos + sceneblock.usos; }
+        | "if" cond sceneblock "else" sceneblock
+ER { sceneblock[1].env = sceneif.env; sceneblock[2].env = sceneif.env; sceneif.usos = cond.usos + sceneblock[1].usos + sceneblock[2].usos; }
+        | "if" cond sceneblock "else" sceneif
+ER { sceneblock.env = sceneif[1].env; sceneif[2].env = sceneif[1].env; sceneif[1].usos = cond.usos + sceneblock.usos + sceneif[2].usos; }
+
+sceneblock : "{" sceneitems "}"
+ER { sceneitems.env = sceneblock.env; sceneblock.usos = sceneitems.usos; }
+
+templatedecl : "template" ID "(" params ")" "{" sceneitems "}"
+ER {
+  sceneitems.env = params.locais;
+  templatedecl.nomes = [(str(ID), (K_TEMPLATE, params.tipos), set(n for n, e, a in sceneitems.usos if e == K_TEMPLATE))];
+  templatedecl.usos = sceneitems.usos;
+}
+             | "template" ID "(" ")" "{" sceneitems "}"
+ER {
+  sceneitems.env = {};
+  templatedecl.nomes = [(str(ID), (K_TEMPLATE, ()), set(n for n, e, a in sceneitems.usos if e == K_TEMPLATE))];
+  templatedecl.usos = sceneitems.usos;
+}
+
+params : params "," param
+ER { params[1].locais = params[2].locais | {param.nome: param.tipo}; params[1].tipos = params[2].tipos + (param.tipo,); }
+CC {
+  param.nome not in params[2].locais -> "Nome declarado mais de uma vez";
+  param.nome not in PRE -> "As cores pré-definidas não podem ser declaradas de novo";
+}
+       | param
+ER { params.locais = {param.nome: param.tipo}; params.tipos = (param.tipo,); }
+CC { param.nome not in PRE -> "As cores pré-definidas não podem ser declaradas de novo"; }
+
+param : ID ":" type
+ER { param.nome = str(ID); param.tipo = type.tipo; }
+
+type : NUM
+ER { type.tipo = str(NUM); }
+     | VEC3
+ER { type.tipo = str(VEC3); }
+     | COLOR
+ER { type.tipo = str(COLOR); }
+     | MATERIAL
+ER { type.tipo = str(MATERIAL); }
+
+args : args "," value
+ER { args[1].tipos = args[2].tipos + (value.tipo,); args[1].usos = args[2].usos + value.usos; }
+     | value
+ER { args.tipos = (value.tipo,); args.usos = value.usos; }
+
+// ---------- Câmara, luz e fundo ----------
+cameradecl : "camera" ID "{" cameraprop* "}"
+ER { cameradecl.nomes = [(str(ID), K_CAMERA, set())]; cameradecl.usos = sum([p.usos for p in @cameraprop], []); }
+
+cameraprop : position
+ER { cameraprop.usos = position.usos; }
+           | lookat
+ER { cameraprop.usos = lookat.usos; }
+           | direction
+ER { cameraprop.usos = direction.usos; }
+           | near
+ER { cameraprop.usos = near.usos; }
+           | far
+ER { cameraprop.usos = far.usos; }
+           | fov
+ER { cameraprop.usos = fov.usos; }
+
+position : "position" vec3val ";"
+ER { position.usos = vec3val.usos; }
+
+lookat : "look_at" vec3val ";"
+ER { lookat.usos = vec3val.usos; }
+
+direction : "direction" vec3val ";"
+ER { direction.usos = vec3val.usos; }
+
+near : "near" num ";"
+ER { near.usos = num.usos; }
+
+far : "far" num ";"
+ER { far.usos = num.usos; }
+
+fov : "fov" num ";"
+ER { fov.usos = num.usos; }
+
+lightdecl : "light" ID "directional" "{" lightprop* "}"
+ER { lightdecl.nomes = [(str(ID), K_LIGHT, set())]; lightdecl.usos = sum([p.usos for p in @lightprop], []); }
+
+lightprop : direction
+ER { lightprop.usos = direction.usos; }
+          | lightcolor
+ER { lightprop.usos = lightcolor.usos; }
+
+lightcolor : "color" colorval ";"
+ER { lightcolor.usos = colorval.usos; }
+
+backgrounddecl : "background" colorval ";"
+ER { backgrounddecl.usos = colorval.usos; }
+
+// ---------- Passes ----------
+passdecl : "pass" ID "{" passitem* "}"
+ER { passdecl.nomes = [(str(ID), K_PASS, set())]; passdecl.usos = sum([p.usos for p in @passitem], []); }
+
+passitem : draw
+ER { passitem.usos = draw.usos; }
+         | passcamera
+ER { passitem.usos = passcamera.usos; }
+         | passlights
+ER { passitem.usos = passlights.usos; }
+         | passlighting
+ER { passitem.usos = passlighting.usos; }
+         | passmaterial
+ER { passitem.usos = passmaterial.usos; }
+         | passif
+ER { passitem.usos = passif.usos; }
+
+draw : "draw" idlist ";"
+ER { draw.usos = [(n, K_SCENE, None) for n in idlist.nomes]; }
+
+passcamera : "camera" ID ";"
+ER { passcamera.usos = [(str(ID), K_CAMERA, None)]; }
+
+passlights : "lights" idlist ";"
+ER { passlights.usos = [(n, K_LIGHT, None) for n in idlist.nomes]; }
+
+passlighting : "lighting" lightingmode lightingparams "for" "all" ";"
+ER { lightingparams.modo = lightingmode.modo; passlighting.usos = lightingparams.usos; }
+             | "lighting" lightingmode "for" "all" ";"
+ER { passlighting.usos = []; }
+
+passmaterial : "material" ID "for" "all" ";"
+ER { passmaterial.usos = [(str(ID), K_MATERIAL, None)]; }
+
+passif : "if" cond passblock
+ER { passif.usos = cond.usos + passblock.usos; }
+       | "if" cond passblock "else" passblock
+ER { passif.usos = cond.usos + passblock[1].usos + passblock[2].usos; }
+       | "if" cond passblock "else" passif
+ER { passif[1].usos = cond.usos + passblock.usos + passif[2].usos; }
+
+passblock : "{" passitem* "}"
+ER { passblock.usos = sum([p.usos for p in @passitem], []); }
+
+idlist : idlist "," ID
+ER { idlist[1].nomes = idlist[2].nomes + [str(ID)]; }
+       | ID
+ER { idlist.nomes = [str(ID)]; }
+
+// ---------- Valores ----------
+num : num ADD term
+ER { num[1].usos = num[2].usos + term.usos; num[1].nome = None; }
+    | num SUB term
+ER { num[1].usos = num[2].usos + term.usos; num[1].nome = None; }
+    | term
+ER { num.usos = term.usos; num.nome = term.nome; }
+
+term : term MUL_OP factor
+ER { term[1].usos = term[2].usos + factor.usos; term[1].nome = None; }
+     | factor
+ER { term.usos = factor.usos; term.nome = factor.nome; }
+
+factor : NUMBER
+ER { factor.usos = []; factor.nome = None; }
+       | ID
+ER { factor.usos = [(str(ID), K_NUM, None)]; factor.nome = str(ID); }
+       | SUB factor
+ER { factor[1].usos = factor[2].usos; factor[1].nome = None; }
+       | "(" num ")"
+ER { factor.usos = num.usos; factor.nome = None; }
+
+vec3 : "(" num "," num "," num ")"
+ER { vec3.usos = num[1].usos + num[2].usos + num[3].usos; }
+
+color : "rgb" vec3
+ER { color.usos = vec3.usos; }
+
+cond : num CMP_OP num
+ER { cond.usos = num[1].usos + num[2].usos; }
+
+vec3val : vec3
+ER { vec3val.usos = vec3.usos; }
+        | ID
+ER { vec3val.usos = [(str(ID), K_VEC3, None)]; }
+
+colorval : color
+ER { colorval.usos = color.usos; }
+         | ID
+ER { colorval.usos = [(str(ID), K_COLOR, None)]; }
+
+value : num
+ER { value.tipo = (REF, num.nome) if num.nome else K_NUM; value.usos = [(num.nome, K_ANY, None)] if num.nome else num.usos; }
+      | vec3
+ER { value.tipo = K_VEC3; value.usos = vec3.usos; }
+      | color
+ER { value.tipo = K_COLOR; value.usos = color.usos; }
+
+// ---------- Léxico (igual ao da secção 2) ----------
+CMP_OP: "==" | "!=" | "<=" | ">=" | "<" | ">"
+ADD: "+"
+SUB: "-"
+MUL_OP: "*" | "/" | "%"
+
+NONE: "none"
+PER_VERTEX: "per_vertex"
+PHONG: "phong"
+TOON: "toon"
+DAY: "day"
+SPECULAR: "specular"
+NIGHT: "night"
+CLOUDS: "clouds"
+UNITIZE: "unitize"
+SWAP_YZ: "swap_yz"
+MIPMAP: "mipmap"
+BOX: "box"
+SPHERE: "sphere"
+SQUARE: "square"
+AXIS: "axis"
+NUM: "num"
+VEC3: "vec3"
+COLOR: "color"
+MATERIAL: "material"
+
+ID: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /[0-9]+(\.[0-9]+)?/
+STRING: /"[^"\n]*"/
+
+COMMENT: /\/\/[^\n]*/ | /\/\*(.|\n)*?\*\//
+%ignore /[ \t\r\n]+/
+%ignore COMMENT

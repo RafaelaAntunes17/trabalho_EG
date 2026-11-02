@@ -1,0 +1,34 @@
+project "Simple";
+
+let modo = 2;          // 1 = por vértice (simple), 2 = phong (v4), 3 = toon
+
+scene rb         = model "models/rainbowBench.obj" unitize;
+scene al         = model "models/al.obj"           unitize;
+scene teapot_obj = model "models/teapot.obj"       unitize;
+scene teapot_3ds = model "models/teapot.3ds"       unitize swap_yz;
+scene plane      = grid length 20 divisions 2;
+
+camera MainCamera {
+    position (1.46, 1.05, 1.75);
+    look_at  (0, 0, 0);
+    near     0.1;
+}
+
+light Sun directional {
+    direction (-2, -1, -2);
+}
+
+background rgb(0.15, 0.25, 0.45);
+
+pass pass1 {
+    draw   teapot_3ds;
+    camera MainCamera;
+    lights Sun;
+    if modo == 2 {
+        lighting phong { shininess 100; } for all;
+    } else if modo == 3 {
+        lighting toon { levels 4; } for all;
+    } else {
+        lighting per_vertex for all;
+    }
+}

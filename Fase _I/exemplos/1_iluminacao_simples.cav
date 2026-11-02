@@ -1,0 +1,28 @@
+project "Simple";
+
+scene teapot_l = model "models/teapot.3ds" unitize swap_yz;
+scene teapot_s = model "models/teapot.obj" unitize;
+scene al       = model "models/al.obj"     unitize;
+scene plane    = grid length 20 divisions 2;
+
+material Yellow { diffuse rgb(1.0, 0.87, 0.0); }
+material Blue   { diffuse rgb(0.0, 0.34, 0.72); }
+
+camera MainCamera {
+    position (1.46, 1.05, 1.75);
+    look_at  (0, 0, 0);
+    near     0.01;
+}
+
+light Sun directional {
+    direction (2, 1, 2);
+}
+
+background white;
+
+pass pass1 {
+    draw   teapot_s;
+    camera MainCamera;
+    lights Sun;
+    lighting per_vertex for all;   // ilumina tudo desta forma, mantendo as cores do modelo
+}

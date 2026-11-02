@@ -1,0 +1,254 @@
+// ---------- Programa ----------
+start: project? decl*
+
+project: "project" STRING ";"
+
+decl: let_decl
+    | texture_decl
+    | material_decl
+    | scene_decl
+    | template_decl
+    | camera_decl
+    | light_decl
+    | background_decl
+    | pass_decl
+
+let_decl: "let" ID "=" value ";"
+
+// ---------- Texturas e materiais ----------
+texture_decl: "texture" ID "=" STRING MIPMAP? ";"
+
+material_decl: "material" ID "{" mat_item* "}"
+
+mat_item: diffuse
+        | mat_lighting
+        | layer
+
+diffuse: "diffuse" color_val ";"
+
+mat_lighting: "lighting" lighting_mode (lighting_params | ";")
+
+lighting_mode: NONE
+             | PER_VERTEX
+             | PHONG
+             | TOON
+
+lighting_params: "{" lighting_param* "}"
+
+lighting_param: shininess
+              | levels
+
+shininess: "shininess" num ";"
+
+levels: "levels" num ";"
+
+layer: "layer" layer_role layer_source ";"
+
+layer_role: DAY
+          | SPECULAR
+          | NIGHT
+          | CLOUDS
+
+layer_source: ID
+            | noise
+
+noise: "noise" ("speed" num)?
+
+// ---------- Cenas e templates ----------
+scene_decl: "scene" ID "=" scene_source ";"
+          | "scene" ID "{" scene_item* "}"
+
+scene_source: model
+            | grid
+
+model: "model" STRING model_option*
+
+model_option: UNITIZE
+            | SWAP_YZ
+
+grid: "grid" "length" num "divisions" num
+
+scene_item: object
+          | template_call
+          | let_decl
+          | scene_for
+          | scene_if
+
+object: shape ID (":" ID)? object_body
+
+shape: BOX
+     | SPHERE
+     | SQUARE
+     | AXIS
+
+template_call: ID "(" args? ")" object_body
+
+object_body: "{" transform* "}"
+           | ";"
+
+transform: translate
+         | scale
+         | rotate
+
+translate: "translate" vec3_val ";"
+
+scale: "scale" vec3_val ";"
+
+rotate: "rotate" num "around" vec3_val ";"
+
+scene_for: "for" ID "in" num _RANGE num "{" scene_item* "}"
+
+scene_if: "if" cond scene_block ("else" (scene_block | scene_if))?
+
+scene_block: "{" scene_item* "}"
+
+template_decl: "template" ID "(" params? ")" "{" scene_item* "}"
+
+params: param
+      | params "," param
+
+param: ID ":" type
+
+type: NUM
+    | VEC3
+    | COLOR
+    | MATERIAL
+
+args: value
+    | args "," value
+
+// ---------- Câmara, luz e fundo ----------
+camera_decl: "camera" ID "{" camera_prop* "}"
+
+camera_prop: position
+           | look_at
+           | direction
+           | near
+           | far
+           | fov
+
+position: "position" vec3_val ";"
+
+look_at: "look_at" vec3_val ";"
+
+direction: "direction" vec3_val ";"
+
+near: "near" num ";"
+
+far: "far" num ";"
+
+fov: "fov" num ";"
+
+light_decl: "light" ID "directional" "{" light_prop* "}"
+
+light_prop: direction
+          | light_color
+
+light_color: "color" color_val ";"
+
+background_decl: "background" color_val ";"
+
+// ---------- Passes ----------
+pass_decl: "pass" ID "{" pass_item* "}"
+
+pass_item: draw
+         | pass_camera
+         | pass_lights
+         | pass_lighting
+         | pass_material
+         | pass_if
+
+draw: "draw" id_list ";"
+
+pass_camera: "camera" ID ";"
+
+pass_lights: "lights" id_list ";"
+
+pass_lighting: "lighting" lighting_mode lighting_params? "for" "all" ";"
+
+pass_material: "material" ID "for" "all" ";"
+
+pass_if: "if" cond pass_block ("else" (pass_block | pass_if))?
+
+pass_block: "{" pass_item* "}"
+
+id_list: ID
+       | id_list "," ID
+
+// ---------- Valores ----------
+// Cada propriedade diz que tipo de valor aceita:
+//   num    números e contas      shininess 100;   near 0.1;   rotate i * 45 ...
+//   vec3   vetores (x, y, z)     position (1, 2, 3);
+//   color  cores                 diffuse rgb(1, 0.87, 0);   background white;
+//   cond   condições             if i % 2 == 0 { ... }
+
+// números: como expr / term / factor nas aulas
+num: num ADD term
+   | num SUB term
+   | term
+
+term: term MUL_OP factor
+    | factor
+
+factor: NUMBER
+      | ID
+      | SUB factor
+      | "(" num ")"
+
+vec3: "(" num "," num "," num ")"
+
+color: "rgb" vec3
+
+cond: num CMP_OP num
+
+// numa propriedade, em vez do valor pode vir uma variável
+// (ou uma cor pré-definida: white, red, ... são ID)
+vec3_val: vec3
+        | ID
+
+color_val: color
+         | ID
+
+// let e argumentos de templates aceitam qualquer tipo
+value: num
+     | vec3
+     | color
+
+// ---------- Léxico ----------
+// operadores
+CMP_OP: "==" | "!=" | "<=" | ">=" | "<" | ">"
+ADD: "+"
+SUB: "-"
+MUL_OP: "*" | "/" | "%"
+_RANGE: ".."
+
+// palavras reservadas cujo valor fica na árvore
+NONE: "none"
+PER_VERTEX: "per_vertex"
+PHONG: "phong"
+TOON: "toon"
+DAY: "day"
+SPECULAR: "specular"
+NIGHT: "night"
+CLOUDS: "clouds"
+UNITIZE: "unitize"
+SWAP_YZ: "swap_yz"
+MIPMAP: "mipmap"
+BOX: "box"
+SPHERE: "sphere"
+SQUARE: "square"
+AXIS: "axis"
+NUM: "num"
+VEC3: "vec3"
+COLOR: "color"
+MATERIAL: "material"
+
+// identificadores, números e texto
+ID: /[a-zA-Z_][a-zA-Z0-9_]*/
+NUMBER: /[0-9]+(\.[0-9]+)?/
+STRING: /"[^"\n]*"/
+
+// ignorados: espaços e comentários
+COMMENT: /\/\/[^\n]*/ | /\/\*(.|\n)*?\*\//
+%ignore /[ \t\r\n]+/
+%ignore COMMENT

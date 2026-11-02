@@ -1,0 +1,33 @@
+project "Texture Model";
+
+texture earth   = "otherTextures/earthDay.jpg"    mipmap;
+texture spec    = "otherTextures/earthSpec.jpg"   mipmap;
+texture eNight  = "otherTextures/earthLights.jpg" mipmap;
+texture eClouds = "otherTextures/earthClouds.jpg" mipmap;   // declarada no original, mas nunca usada
+
+material textured {
+    lighting phong { shininess 128; }
+    layer day      earth;
+    layer specular spec;                  // só brilha onde a imagem é clara (o mar)
+    layer night    eNight;                // aparece onde não chega luz
+    layer clouds   noise speed 0.0001;    // nuvens procedimentais, animadas com o tempo
+}
+
+scene Sphere = model "models/sphere.obj" unitize;
+
+camera MainCamera {
+    position  (0, 0, 3);
+    direction (0, 0, -1);                 // direção para onde olha, em vez de um ponto
+    near      0.1;
+}
+
+light Sun directional { direction (2, -1, -2); }
+
+background black;
+
+pass render {
+    draw   Sphere;
+    camera MainCamera;
+    lights Sun;
+    material textured for all;            // substitui os materiais do modelo por este
+}

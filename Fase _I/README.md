@@ -1,7 +1,6 @@
 # Caravela: uma linguagem para descrever cenas 3D
 
-**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**<br>
-*Mestrado em Engenharia Informática · Universidade do Minho*
+Trabalho da Parte I de Engenharia Gramatical (MEI, Universidade do Minho, 2026/27).
 
 | Grupo | Número |
 |---|---|
@@ -9,30 +8,24 @@
 | Tomás Pinto | PG64038 |
 | Mounika Gopi | PG64009 |
 
-A linguagem está definida em [`caravela/gramatica.lark`](caravela/gramatica.lark) e
-[`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark): o léxico, a gramática,
-os atributos, as regras de cálculo e as condições de contexto.
+A Caravela descreve cenas 3D para o motor Nau e verifica-as antes de chegarem ao Nau. O léxico e a
+sintaxe estão em [`caravela/gramatica.lark`](caravela/gramatica.lark), e a semântica está em
+[`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark).
 
-<a id="indice"></a>
-## Índice
+Conteúdo:
 
-| | Capítulo | Documentos de detalhe |
-|:-:|---|---|
-| **1** | **[Desenho da linguagem](#desenho)**<br>[Domínio e problema](#dominio) · [Objetivos](#objetivos) | |
-| **2** | **[Instalação e execução](#instalacao)**<br>[Utilização](#execucao) · [Testes](#testes) · [Estrutura](#estrutura) | [`testes.py`](testes.py) |
-| **3** | **[A linguagem](#linguagem)**<br>[Exemplo](#exemplo) · [Construções](#construcoes) | [`exemplos/`](exemplos/) |
-| **4** | **[Especificação léxica e sintática](#sintaxe)**<br>[Léxico](#lexico) · [Gramática](#gramatica) | [`gramatica.lark`](caravela/gramatica.lark) |
-| **5** | **[Especificação semântica](#semantica)**<br>[Propriedades verificadas](#propriedades) · [Gramática de atributos](#atributos) · [Implementação](#implementacao) | [`gramatica_ag.lark`](caravela/gramatica_ag.lark) |
-| **6** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`metricas.py`](caravela/metricas.py) |
-| **7** | **[Limitações e trabalho futuro](#limitacoes)** | |
+1. [A linguagem](#linguagem-caravela): [o problema](#problema), [objetivos](#metas), [construções](#construcoes-caravela), [âmbitos](#ambitos), [exemplo](#exemplo-templo) e [requisitos](#requisitos)
+2. [Léxico e gramática](#lexico-gramatica): [tokens](#tokens) e [regras](#regras)
+3. [Semântica](#verificacao): [o que é verificado](#verificacoes), [atributos](#atributos-caravela) e [como corre](#corre-larkag)
+4. [Avaliação da qualidade](#avaliacao)
+5. [Como correr o projeto](#correr): [instalar](#instalar), [usar](#usar), [testar](#testar) e [estrutura](#pastas)
+6. [Limitações](#limitacoes)
 
----
+<a id="linguagem-caravela"></a>
+## 1. A linguagem
 
-<a id="desenho"></a>
-## 1. Desenho da linguagem
-
-<a id="dominio"></a>
-### 1.1 Domínio e problema
+<a id="problema"></a>
+### 1.1 O problema que resolve
 
 A Caravela é uma linguagem para descrever cenas 3D do Nau, o motor gráfico que usamos em
 Visualização em Tempo Real (VTR).
@@ -49,7 +42,7 @@ materiais, cenas, câmaras, luzes e passes), e verificar todas essas ligações 
 Nau. Nesta Parte I fizemos o léxico, a gramática e a gramática de atributos. A geração dos
 ficheiros do Nau fica para a Parte II.
 
-<a id="objetivos"></a>
+<a id="metas"></a>
 ### 1.2 Objetivos
 
 Temos três objetivos:
@@ -72,76 +65,8 @@ Limitámos a linguagem ao que foi dado nas aulas 2 (iluminação) e 3 (texturas)
 é muito grande. Sombras, vários passes encadeados e shaders escritos à mão ficam de fora. O nome
 vem do próprio motor: a caravela era um barco mais pequeno e mais fácil de manobrar do que a nau.
 
-<a id="instalacao"></a>
-## 2. Instalação e execução
-
-### 2.1 Instalação
-
-É preciso Python 3.10 ou mais recente. Todos os comandos correm dentro desta pasta.
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-No Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
-
-<a id="execucao"></a>
-### 2.2 Utilização
-
-Verificar um programa:
-
-```
-$ python -m caravela exemplos/3_templo.cav
-exemplos/3_templo.cav: programa correto
-  tabela de símbolos: {'n': 'num', 'raio': 'num', 'azul': 'material', 'branco': 'material', 'pilar': ('template', ('num', 'material')), ...}
-  unidades de textura: {'azul': {}, 'branco': {}}
-```
-
-Se o programa tiver um erro, aparece a mensagem, por exemplo
-`erro semântico: Argumentos do template com tipo errado`. Com `--tokens` vê-se o resultado do
-analisador léxico e com `--arvore` a árvore sintática.
-
-<a id="testes"></a>
-### 2.3 Testes
-
-Correr os testes (são doctests, como nas fichas das aulas):
-
-```bash
-python testes.py
-```
-
-Calcular as métricas de qualidade:
-
-```bash
-python -m caravela.metricas
-```
-
-<a id="estrutura"></a>
-### 2.4 Estrutura do repositório
-
-```
-caravela/
-  gramatica.lark      léxico e gramática independente de contexto
-  gramatica_ag.lark   gramática de atributos (LarkAG)
-  auxiliares.py       tipos e funções usados nas regras da gramática de atributos
-  sintaxe.py          parser LALR
-  semantica.py        avalia a gramática de atributos
-  metricas.py         métricas de qualidade (NB07)
-  __main__.py         linha de comandos
-exemplos/             os programas de exemplo
-testes.py             doctests
-```
-
-<a id="linguagem"></a>
-## 3. A linguagem
+<a id="construcoes-caravela"></a>
+### 1.3 Construções
 
 | Conceito | Em Caravela |
 |---|---|
@@ -174,7 +99,8 @@ Como estas construções servem o objetivo:
   e `template` escreve-se uma vez o que no XML se repete, e o compilador da Parte II desenrola
   tudo antes de gerar os ficheiros.
 
-### Âmbitos e valores
+<a id="ambitos"></a>
+### 1.4 Âmbitos e valores
 
 A Caravela tem âmbito estático (léxico): o que um nome quer dizer depende só de onde está escrito
 no programa.
@@ -199,8 +125,8 @@ um valor e não se pode reatribuir, tal como nas expressões com `let` da EX04. 
 é o da cena que se vai construindo: dentro de um `for` o `let` volta a ser calculado em cada
 iteração (`let ang = i * 360 / n;`).
 
-<a id="exemplo"></a>
-### 3.1 Exemplo completo
+<a id="exemplo-templo"></a>
+### 1.5 Exemplo: o templo
 
 Temos quatro exemplos em [`exemplos/`](exemplos/). Três são projetos das aulas de VTR reescritos e o
 templo é uma cena nova, para mostrar os templates, os ciclos e as condições:
@@ -235,8 +161,8 @@ scene templo {
 | [`Templo`](exemplos/3_templo.cav) (cena nova) | não existe | 38 linhas |
 | [`Texturas da Terra`](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros, mais 133 do `noise.frag` | 33 linhas |
 
-<a id="construcoes"></a>
-### 3.2 Construções e requisitos
+<a id="requisitos"></a>
+### 1.6 Requisitos do enunciado
 
 O enunciado pede alguns requisitos mínimos. Estão aqui:
 
@@ -249,11 +175,13 @@ O enunciado pede alguns requisitos mínimos. Estão aqui:
 | Ramificação e repetição | `if` / `else if` / `else` e `for i in 0..n` |
 | Semântica que a sintaxe não vê | nomes, tipos, argumentos dos templates, ciclos entre `let`, coerência dos materiais |
 
-<a id="sintaxe"></a>
-## 4. Especificação léxica e sintática
+---
 
-<a id="lexico"></a>
-### 4.1 Léxico
+<a id="lexico-gramatica"></a>
+## 2. Léxico e gramática
+
+<a id="tokens"></a>
+### 2.1 Tokens
 
 O léxico e a gramática estão em [`caravela/gramatica.lark`](caravela/gramatica.lark), escritos em
 EBNF do Lark.
@@ -289,8 +217,8 @@ Há 58 palavras reservadas:
 O `0..n` não se confunde com um número decimal, porque o `NUMBER` obriga a ter dígitos depois do
 ponto. E `-2` dá dois tokens (`SUB` e `NUMBER`), por isso `a - 2` e `a -2` leem-se da mesma maneira.
 
-<a id="gramatica"></a>
-### 4.2 Gramática
+<a id="regras"></a>
+### 2.2 Regras
 
 Decisões que tomámos:
 
@@ -308,11 +236,238 @@ Decisões que tomámos:
 - As cores (`white`, `red`, ...) não são palavras reservadas, são `ID`. Estão no ambiente inicial
   da análise semântica, e para acrescentar uma cor não é preciso mexer na gramática.
 
-<a id="semantica"></a>
-## 5. Especificação semântica
+#### Gramática completa
 
-<a id="propriedades"></a>
-### 5.1 Propriedades verificadas
+A gramática está em EBNF do Lark, tal como em [`gramatica.lark`](caravela/gramatica.lark). Os terminais estão na secção 2.1.
+
+<details>
+<summary>Ver as regras da gramática</summary>
+
+```lark
+// ---------- Programa ----------
+start: project? decl*
+
+project: "project" STRING ";"
+
+decl: let_decl
+    | texture_decl
+    | material_decl
+    | scene_decl
+    | template_decl
+    | camera_decl
+    | light_decl
+    | background_decl
+    | pass_decl
+
+let_decl: "let" ID "=" value ";"
+
+// ---------- Texturas e materiais ----------
+texture_decl: "texture" ID "=" STRING MIPMAP? ";"
+
+material_decl: "material" ID "{" mat_item* "}"
+
+mat_item: diffuse
+        | mat_lighting
+        | layer
+
+diffuse: "diffuse" color_val ";"
+
+mat_lighting: "lighting" lighting_mode (lighting_params | ";")
+
+lighting_mode: NONE
+             | PER_VERTEX
+             | PHONG
+             | TOON
+
+lighting_params: "{" lighting_param* "}"
+
+lighting_param: shininess
+              | levels
+
+shininess: "shininess" num ";"
+
+levels: "levels" num ";"
+
+layer: "layer" layer_role layer_source ";"
+
+layer_role: DAY
+          | SPECULAR
+          | NIGHT
+          | CLOUDS
+
+layer_source: ID
+            | noise
+
+noise: "noise" ("speed" num)?
+
+// ---------- Cenas e templates ----------
+scene_decl: "scene" ID "=" scene_source ";"
+          | "scene" ID "{" scene_item* "}"
+
+scene_source: model
+            | grid
+
+model: "model" STRING model_option*
+
+model_option: UNITIZE
+            | SWAP_YZ
+
+grid: "grid" "length" num "divisions" num
+
+scene_item: object
+          | template_call
+          | let_decl
+          | scene_for
+          | scene_if
+
+object: shape ID (":" ID)? object_body
+
+shape: BOX
+     | SPHERE
+     | SQUARE
+     | AXIS
+
+template_call: ID "(" args? ")" object_body
+
+object_body: "{" transform* "}"
+           | ";"
+
+transform: translate
+         | scale
+         | rotate
+
+translate: "translate" vec3_val ";"
+
+scale: "scale" vec3_val ";"
+
+rotate: "rotate" num "around" vec3_val ";"
+
+scene_for: "for" ID "in" num _RANGE num "{" scene_item* "}"
+
+scene_if: "if" cond scene_block ("else" (scene_block | scene_if))?
+
+scene_block: "{" scene_item* "}"
+
+template_decl: "template" ID "(" params? ")" "{" scene_item* "}"
+
+params: param
+      | params "," param
+
+param: ID ":" type
+
+type: NUM
+    | VEC3
+    | COLOR
+    | MATERIAL
+
+args: value
+    | args "," value
+
+// ---------- Câmara, luz e fundo ----------
+camera_decl: "camera" ID "{" camera_prop* "}"
+
+camera_prop: position
+           | look_at
+           | direction
+           | near
+           | far
+           | fov
+
+position: "position" vec3_val ";"
+
+look_at: "look_at" vec3_val ";"
+
+direction: "direction" vec3_val ";"
+
+near: "near" num ";"
+
+far: "far" num ";"
+
+fov: "fov" num ";"
+
+light_decl: "light" ID "directional" "{" light_prop* "}"
+
+light_prop: direction
+          | light_color
+
+light_color: "color" color_val ";"
+
+background_decl: "background" color_val ";"
+
+// ---------- Passes ----------
+pass_decl: "pass" ID "{" pass_item* "}"
+
+pass_item: draw
+         | pass_camera
+         | pass_lights
+         | pass_lighting
+         | pass_material
+         | pass_if
+
+draw: "draw" id_list ";"
+
+pass_camera: "camera" ID ";"
+
+pass_lights: "lights" id_list ";"
+
+pass_lighting: "lighting" lighting_mode lighting_params? "for" "all" ";"
+
+pass_material: "material" ID "for" "all" ";"
+
+pass_if: "if" cond pass_block ("else" (pass_block | pass_if))?
+
+pass_block: "{" pass_item* "}"
+
+id_list: ID
+       | id_list "," ID
+
+// ---------- Valores ----------
+// Cada propriedade diz que tipo de valor aceita:
+//   num    números e contas      shininess 100;   near 0.1;   rotate i * 45 ...
+//   vec3   vetores (x, y, z)     position (1, 2, 3);
+//   color  cores                 diffuse rgb(1, 0.87, 0);   background white;
+//   cond   condições             if i % 2 == 0 { ... }
+
+// números: como expr / term / factor nas aulas
+num: num ADD term
+   | num SUB term
+   | term
+
+term: term MUL_OP factor
+    | factor
+
+factor: NUMBER
+      | ID
+      | SUB factor
+      | "(" num ")"
+
+vec3: "(" num "," num "," num ")"
+
+color: "rgb" vec3
+
+cond: num CMP_OP num
+
+// numa propriedade, em vez do valor pode vir uma variável
+// (ou uma cor pré-definida: white, red, ... são ID)
+vec3_val: vec3
+        | ID
+
+color_val: color
+         | ID
+
+// let e argumentos de templates aceitam qualquer tipo
+value: num
+     | vec3
+     | color
+```
+
+</details>
+
+<a id="verificacao"></a>
+## 3. Semântica
+
+<a id="verificacoes"></a>
+### 3.1 O que é verificado
 
 A gramática de atributos está em [`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark) e corre
 com o LarkAG, como na EX04. Verifica estas propriedades (as mensagens são as das condições de
@@ -336,8 +491,8 @@ Além disso, a gramática de atributos calcula a unidade de textura de cada cama
 Não verificamos os valores (por exemplo `near > 0`), porque para isso era preciso avaliar as
 expressões com um atributo `val`, como no exemplo das aulas.
 
-<a id="atributos"></a>
-### 5.2 Gramática de atributos
+<a id="atributos-caravela"></a>
+### 3.2 Gramática de atributos
 
 #### Ideia: os usos sobem, os nomes locais descem
 
@@ -377,8 +532,99 @@ sintetiza `locais = {a ↦ num}`, que passa a fazer parte do `env` do segundo. O
 `translate` é resolvido aí e não chega à raiz. Se os dois itens estivessem trocados, o `a` não
 estava no `env`, o uso subia até `start` e dava `Nome não declarado`.
 
-O `env` de cada item só depende do pai e dos irmãos à esquerda, por isso a gramática é
+O `env` de um item usa só o pai e os itens anteriores, por isso a gramática é
 L-atribuída (NB06) e os atributos calculam-se numa só visita.
+
+#### Declaração de todos os atributos
+
+`SA` são atributos sintetizados e `IA` são herdados. As regras de avaliação e as condições de contexto estão em [`gramatica_ag.lark`](caravela/gramatica_ag.lark).
+
+<details>
+<summary>Ver os atributos de cada símbolo</summary>
+
+```
+SA(start)          { nomes : list, usos : list, tabela : dict, materiais : dict }
+SA(decl)           { nomes : list, usos : list, unidades : dict }
+
+SA(letdecl)        { nome : str, tipo : any, usos : list }
+SA(texturedecl)    { nomes : list }
+SA(materialdecl)   { nomes : list, usos : list, modos : list, papeis : list, unidades : dict }
+SA(matitem)        { usos : list, modo : str, papel : str, textura : bool }
+SA(diffuse)        { usos : list }
+SA(matlighting)    { usos : list, modo : str }
+SA(lightingmode)   { modo : str }
+SA(lightingparams) { usos : list, nomes : list }
+IA(lightingparams) { modo : str }
+SA(lightingparam)  { usos : list, nome : str }
+SA(shininess)      { usos : list }
+SA(levels)         { usos : list }
+SA(layer)          { usos : list, papel : str, textura : bool }
+SA(layerrole)      { papel : str }
+SA(layersource)    { usos : list, textura : bool }
+SA(noise)          { usos : list }
+
+SA(scenedecl)      { nomes : list, usos : list }
+SA(scenesource)    { usos : list }
+SA(grid)           { usos : list }
+SA(sceneitems)     { usos : list, locais : dict }
+IA(sceneitems)     { env : dict }
+SA(sceneitem)      { usos : list, locais : dict }
+IA(sceneitem)      { env : dict }
+SA(object)         { usos : list }
+SA(templatecall)   { usos : list }
+SA(objectbody)     { usos : list }
+SA(transform)      { usos : list }
+SA(translate)      { usos : list }
+SA(scale)          { usos : list }
+SA(rotate)         { usos : list }
+SA(scenefor)       { usos : list }
+IA(scenefor)       { env : dict }
+SA(sceneif)        { usos : list }
+IA(sceneif)        { env : dict }
+SA(sceneblock)     { usos : list }
+IA(sceneblock)     { env : dict }
+SA(templatedecl)   { nomes : list, usos : list }
+SA(params)         { locais : dict, tipos : tuple }
+SA(param)          { nome : str, tipo : str }
+SA(type)           { tipo : str }
+SA(args)           { usos : list, tipos : tuple }
+
+SA(cameradecl)     { nomes : list, usos : list }
+SA(cameraprop)     { usos : list }
+SA(position)       { usos : list }
+SA(lookat)         { usos : list }
+SA(direction)      { usos : list }
+SA(near)           { usos : list }
+SA(far)            { usos : list }
+SA(fov)            { usos : list }
+SA(lightdecl)      { nomes : list, usos : list }
+SA(lightprop)      { usos : list }
+SA(lightcolor)     { usos : list }
+SA(backgrounddecl) { usos : list }
+
+SA(passdecl)       { nomes : list, usos : list }
+SA(passitem)       { usos : list }
+SA(draw)           { usos : list }
+SA(passcamera)     { usos : list }
+SA(passlights)     { usos : list }
+SA(passlighting)   { usos : list }
+SA(passmaterial)   { usos : list }
+SA(passif)         { usos : list }
+SA(passblock)      { usos : list }
+SA(idlist)         { nomes : list }
+
+SA(num)            { usos : list, nome : str }
+SA(term)           { usos : list, nome : str }
+SA(factor)         { usos : list, nome : str }
+SA(vec3)           { usos : list }
+SA(color)          { usos : list }
+SA(cond)           { usos : list }
+SA(vec3val)        { usos : list }
+SA(colorval)       { usos : list }
+SA(value)          { usos : list, tipo : any }
+```
+
+</details>
 
 #### Diferenças para a gramática da secção anterior
 
@@ -400,15 +646,15 @@ num sítio onde essas funções não existem. Por isso, em [caravela/semantica.p
 construímos o parser LALR com `ag.getCFG()` e corremos o interpretador que o LarkAG gera
 (`ag.getInterpreterFile()`) junto com as nossas funções.
 
-<a id="implementacao"></a>
-### 5.3 Implementação em LarkAG
+<a id="corre-larkag"></a>
+### 3.3 Como corre
 
 Para executar a gramática de atributos, o módulo [`caravela/semantica.py`](caravela/semantica.py)
 constrói o parser LALR com `ag.getCFG()` e executa o interpretador gerado pelo LarkAG junto
 com as funções auxiliares do projeto.
 
-<a id="qualidade"></a>
-## 6. Qualidade da linguagem e da gramática
+<a id="avaliacao"></a>
+## 4. Avaliação da qualidade
 
 Usámos os fatores e as métricas da NB07 e da EX05. Os números são os que
 `python -m caravela.metricas` imprime.
@@ -494,8 +740,77 @@ O que tiramos destas métricas, com as características da NB07:
 - **Estilo e especificidade.** As regras são declarativas (cada uma diz quanto vale um atributo) e
   a linguagem é de domínio específico.
 
+<a id="correr"></a>
+## 5. Como correr o projeto
+
+<a id="instalar"></a>
+### 5.1 Instalar
+
+É preciso Python 3.10 ou mais recente. Todos os comandos correm dentro desta pasta.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+No Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+<a id="usar"></a>
+### 5.2 Usar
+
+Verificar um programa:
+
+```
+$ python -m caravela exemplos/3_templo.cav
+exemplos/3_templo.cav: programa correto
+  tabela de símbolos: {'n': 'num', 'raio': 'num', 'azul': 'material', 'branco': 'material', 'pilar': ('template', ('num', 'material')), ...}
+  unidades de textura: {'azul': {}, 'branco': {}}
+```
+
+Se o programa tiver um erro, aparece a mensagem, por exemplo
+`erro semântico: Argumentos do template com tipo errado`. Com `--tokens` vê-se o resultado do
+analisador léxico e com `--arvore` a árvore sintática.
+
+<a id="testar"></a>
+### 5.3 Testar
+
+Correr os testes (são doctests, como nas fichas das aulas):
+
+```bash
+python testes.py
+```
+
+Calcular as métricas de qualidade:
+
+```bash
+python -m caravela.metricas
+```
+
+<a id="pastas"></a>
+### 5.4 Estrutura
+
+```
+caravela/
+  gramatica.lark      léxico e gramática independente de contexto
+  gramatica_ag.lark   gramática de atributos (LarkAG)
+  auxiliares.py       tipos e funções usados nas regras da gramática de atributos
+  sintaxe.py          parser LALR
+  semantica.py        avalia a gramática de atributos
+  metricas.py         métricas de qualidade (NB07)
+  __main__.py         linha de comandos
+exemplos/             os programas de exemplo
+testes.py             doctests
+```
+
 <a id="limitacoes"></a>
-## 7. Limitações e trabalho futuro
+## 6. Limitações
 
 - As mensagens de erro não dizem qual é o nome nem a linha. No LarkAG a mensagem de uma condição
   de contexto é um texto fixo.

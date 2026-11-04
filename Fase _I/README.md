@@ -7,7 +7,7 @@
 |---|---|
 | Rafaela Antunes | PG62934 |
 | Tomás Pinto | PG64038 |
-| Nome Apelido | aXXXXX |
+| Mounika Gopi | PG64009 |
 
 A linguagem está definida em [`caravela/gramatica.lark`](caravela/gramatica.lark) e
 [`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark): o léxico, a gramática,

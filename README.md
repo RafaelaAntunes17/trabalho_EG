@@ -1,6 +1,7 @@
-# Caravela
+# Caravela: uma linguagem para descrever cenas 3D
 
-Projeto Parte I de Engenharia Gramatical (MEI, 2026/27).
+**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**<br>
+*Mestrado em Engenharia Informática · Universidade do Minho*
 
 A **Caravela** é uma linguagem de domínio específico para descrever cenas 3D do
 [Nau](https://github.com/Nau3D/nau), o motor gráfico usado em Visualização em Tempo Real.
@@ -11,19 +12,69 @@ preto, sem nenhum aviso. Em Caravela escreve-se um só programa, com os mesmos c
 essas ligações antes de se gerarem os ficheiros do Nau.
 
 O projeto mais simples da aula 2 de VTR tem 175 linhas em 4 ficheiros. Em Caravela são 28
-linhas num só ficheiro ([exemplos/1_iluminacao_simples.cav](exemplos/1_iluminacao_simples.cav)).
+linhas num só ficheiro
+([`1_iluminacao_simples.cav`](Fase%20_I/exemplos/1_iluminacao_simples.cav)).
 
-## Instalação
+<a id="indice"></a>
+## Índice
+
+| | Capítulo | Documentos de detalhe |
+|:-:|---|---|
+| **1** | **[Visão geral](#visao-geral)**<br>[Objetivo e resultado](#objetivo) · [A linguagem](#linguagem) · [Exemplo](#exemplo) | [`Fase _I/exemplos/`](Fase%20_I/exemplos/) |
+| **2** | **[Instalação e utilização](#instalacao)**<br>[Instalação](#instalacao-requisitos) · [Utilização](#utilizacao) · [Estrutura](#estrutura) | [`requirements.txt`](Fase%20_I/requirements.txt) |
+| **3** | **[Especificação da linguagem](#especificacao)**<br>[Léxico e sintaxe](#lexico) · [Semântica](#semantica) | [`gramatica.lark`](Fase%20_I/caravela/gramatica.lark) · [`gramatica_ag.lark`](Fase%20_I/caravela/gramatica_ag.lark) |
+| **4** | **[Testes e qualidade](#testes)** | [`tests/`](Fase%20_I/tests/) · [`metricas.py`](Fase%20_I/caravela/metricas.py) |
+
+---
+
+<a id="visao-geral"></a>
+## 1. Visão geral
+
+<a id="objetivo"></a>
+### 1.1 Objetivo e resultado
+
+O objetivo deste trabalho é aplicar os conceitos de análise léxica, análise sintática e
+gramáticas de atributos a uma linguagem pequena, mas suficientemente expressiva para descrever
+cenas 3D. A implementação:
+
+1. define a sintaxe da linguagem numa gramática LALR(1);
+2. constrói a árvore sintática dos programas `.cav`;
+3. verifica as regras semânticas através de uma gramática de atributos em LarkAG;
+4. apresenta a tabela de símbolos e as unidades de textura calculadas quando o programa é válido;
+5. produz mensagens de erro com a linha e a coluna para erros de sintaxe e identifica a regra
+   semântica violada.
+
+Esta fase implementa a análise e validação dos programas. Não gera automaticamente os ficheiros
+`.xml`, `.mlib`, `.vert` ou `.frag` do Nau.
+
+<a id="instalacao"></a>
+## 2. Instalação e utilização
+
+<a id="instalacao-requisitos"></a>
+### 2.1 Instalação
 
 Requer Python 3.10 ou mais recente.
 
 ```bash
+cd "Fase _I"
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Utilização
+No Windows PowerShell, a ativação do ambiente virtual é:
+
+```powershell
+cd "Fase _I"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+O ficheiro `requirements.txt` instala o Lark e a versão do LarkAG usada pelo trabalho.
+
+<a id="utilizacao"></a>
+### 2.2 Utilização
 
 Verificar um programa (análise léxica, sintática e semântica):
 
@@ -42,6 +93,14 @@ exemplos/3_templo.cav: programa correto
 ```
 
 Opções: `--tokens` mostra os tokens do analisador léxico e `--arvore` mostra a árvore sintática.
+As opções podem ser usadas em conjunto, por exemplo:
+
+```bash
+python -m caravela exemplos/3_templo.cav --tokens --arvore
+```
+
+Um programa válido termina com código de saída `0`. Um erro de sintaxe ou semântico é
+apresentado no terminal e termina com código de saída `1`.
 
 Correr os testes:
 
@@ -55,22 +114,34 @@ Calcular as medidas de qualidade da gramática e da gramática de atributos:
 python -m caravela.metricas
 ```
 
-## Estrutura
+Os comandos desta secção devem ser executados dentro da pasta `Fase _I`, onde se encontram o
+pacote `caravela`, os exemplos, os testes e o ficheiro de dependências.
+
+<a id="estrutura"></a>
+### 2.3 Estrutura
 
 ```
-caravela/
-  gramatica.lark      léxico e gramática independente de contexto (Lark, LALR(1))
-  gramatica_ag.lark   gramática de atributos (LarkAG)
-  auxiliares.py       tipos e funções auxiliares usados pelas regras da gramática de atributos
-  sintaxe.py          parser LALR construído a partir de gramatica.lark
-  semantica.py        avaliação da gramática de atributos (análise semântica)
-  metricas.py         medidas de qualidade da gramática
-  __main__.py         linha de comandos
-exemplos/             os quatro programas de exemplo
-tests/                testes de sintaxe e de semântica (pytest)
+Fase _I/
+  requirements.txt
+  caravela/
+    gramatica.lark    léxico e gramática independente de contexto (Lark, LALR(1))
+    gramatica_ag.lark gramática de atributos (LarkAG)
+    auxiliares.py     tipos e funções auxiliares usados pelas regras da gramática de atributos
+    sintaxe.py        parser LALR construído a partir de gramatica.lark
+    semantica.py      avaliação da gramática de atributos (análise semântica)
+    metricas.py       medidas de qualidade da gramática
+    __main__.py       linha de comandos
+  exemplos/             os quatro programas de exemplo
+  tests/                testes de sintaxe e de semântica (pytest)
+README.md              documentação do trabalho
+TP1_2627.pdf           enunciado
 ```
 
-## A linguagem
+<a id="especificacao"></a>
+## 3. Especificação da linguagem
+
+<a id="linguagem"></a>
+### 3.1 A linguagem
 
 | Conceito | Em Caravela |
 |---|---|
@@ -89,7 +160,10 @@ tests/                testes de sintaxe e de semântica (pytest)
 O utilizador não escreve shaders: cada material diz só o efeito que quer (`lighting`, `layer`)
 e o compilador escolhe o shader e faz as ligações com o `.mlib`.
 
-Exemplo ([exemplos/3_templo.cav](exemplos/3_templo.cav)): oito pilares em círculo, que alternam
+<a id="exemplo"></a>
+#### Exemplo completo
+
+Exemplo ([`3_templo.cav`](Fase%20_I/exemplos/3_templo.cav)): oito pilares em círculo, que alternam
 entre duas alturas e dois materiais.
 
 ```
@@ -121,14 +195,15 @@ scene templo {
 
 | Exemplo | Original (aulas de VTR) | Caravela |
 |---|---|---|
-| [1. Iluminação simples](exemplos/1_iluminacao_simples.cav) (aula 2) | 175 linhas, 4 ficheiros | 28 linhas |
-| [2. Iluminação por píxel](exemplos/2_iluminacao_por_pixel.cav) (aula 2) | 191 linhas, 4 ficheiros | 34 linhas, com os três modos |
-| [3. Templo com pilares](exemplos/3_templo.cav) (cena nova) | — | 38 linhas |
-| [4. Texturas da Terra](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros + `noise.frag` | 33 linhas |
+| [`1. Iluminação simples`](Fase%20_I/exemplos/1_iluminacao_simples.cav) (aula 2) | 175 linhas, 4 ficheiros | 28 linhas |
+| [`2. Iluminação por píxel`](Fase%20_I/exemplos/2_iluminacao_por_pixel.cav) (aula 2) | 191 linhas, 4 ficheiros | 34 linhas, com os três modos |
+| [`3. Templo com pilares`](Fase%20_I/exemplos/3_templo.cav) (cena nova) | — | 38 linhas |
+| [`4. Texturas da Terra`](Fase%20_I/exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros + `noise.frag` | 33 linhas |
 
-## Léxico e sintaxe
+<a id="lexico"></a>
+### 3.2 Léxico e sintaxe
 
-A gramática está em [caravela/gramatica.lark](caravela/gramatica.lark). O parser é LALR(1),
+A gramática está em [`gramatica.lark`](Fase%20_I/caravela/gramatica.lark). O parser é LALR(1),
 com `lexer="basic"` e `strict=True`, por isso o Lark recusa a gramática se houver algum conflito.
 
 - Identificadores `[a-zA-Z_][a-zA-Z0-9_]*`, números sem sinal (o `-` é um operador), texto entre aspas,
@@ -141,9 +216,10 @@ com `lexer="basic"` e `strict=True`, por isso o Lark recusa a gramática se houv
 - As expressões seguem o esquema `num / term / factor` das aulas, para dar a precedência e a
   associatividade à esquerda.
 
-## Semântica: gramática de atributos
+<a id="semantica"></a>
+### 3.3 Semântica: gramática de atributos
 
-A gramática de atributos está em [caravela/gramatica_ag.lark](caravela/gramatica_ag.lark) e é
+A gramática de atributos está em [`gramatica_ag.lark`](Fase%20_I/caravela/gramatica_ag.lark) e é
 executada com LarkAG. Verifica estas propriedades:
 
 | Propriedade | Mensagem de erro |
@@ -192,15 +268,31 @@ esquerda, o `..` como literal e partes opcionais com atributos passadas a altern
 Não verificamos os valores válidos (`near > 0`, `levels >= 2`, ...), porque para isso seria
 preciso avaliar as expressões.
 
-## Testes
+<a id="testes"></a>
+## 4. Testes e qualidade
 
-[tests/test_sintaxe.py](tests/test_sintaxe.py) testa o léxico, programas corretos e com erros de
+<a id="testes-execucao"></a>
+### 4.1 Testes
+
+[`test_sintaxe.py`](Fase%20_I/tests/test_sintaxe.py) testa o léxico, programas corretos e com erros de
 sintaxe, e que a gramática do LarkAG aceita a mesma linguagem.
-[tests/test_semantica.py](tests/test_semantica.py) tem um caso para cada propriedade semântica,
+[`test_semantica.py`](Fase%20_I/tests/test_semantica.py) tem um caso para cada propriedade semântica,
 os erros referidos no exemplo 3 (`pilar(3, azl)`, `pilar(azul, 3)`, `ang` fora do ciclo,
 `draw templo, cam`, `shininess` sem `phong`) e as unidades de textura do exemplo 4.
 
-## Qualidade
+Para reproduzir a verificação completa:
+
+```bash
+cd "Fase _I"
+pytest -q
+```
+
+Os testes também funcionam como exemplos de utilização da API Python:
+`caravela.sintaxe` expõe o parser e a tokenização, enquanto `caravela.semantica` expõe
+`analisar`, `verificar_sintaxe` e `verificar_semantica`.
+
+<a id="qualidade"></a>
+### 4.2 Qualidade
 
 `python -m caravela.metricas` calcula as medidas de tamanho e estrutura de Power e Malloy (2004).
 Resultados principais:

@@ -1,10 +1,36 @@
-# Caravela
+# Caravela: uma linguagem para descrever cenas 3D
 
-Projeto Parte I de Engenharia Gramatical (MEI, 2026/27).
+**Engenharia Gramatical 2026/27 · Projeto, Parte I: Language and Grammar Engineering**<br>
+*Mestrado em Engenharia Informática · Universidade do Minho*
 
-Grupo: Rafaela Antunes (PG62934), Tomás Pinto (PG64038), Nome Apelido (aXXXXX)
+| Grupo | Número |
+|---|---|
+| Rafaela Antunes | PG62934 |
+| Tomás Pinto | PG64038 |
+| Nome Apelido | aXXXXX |
 
-## O que é
+A linguagem está definida em [`caravela/gramatica.lark`](caravela/gramatica.lark) e
+[`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark): o léxico, a gramática,
+os atributos, as regras de cálculo e as condições de contexto.
+
+<a id="indice"></a>
+## Índice
+
+| | Capítulo | Documentos de detalhe |
+|:-:|---|---|
+| **1** | **[Desenho da linguagem](#desenho)**<br>[Domínio e problema](#dominio) · [Objetivos](#objetivos) · [Exemplo](#exemplo) · [Construções](#construcoes) | [`exemplos/`](exemplos/) |
+| **2** | **[Especificação léxica e sintática](#sintaxe)**<br>[Léxico](#lexico) · [Gramática](#gramatica) | [`gramatica.lark`](caravela/gramatica.lark) |
+| **3** | **[Especificação semântica](#semantica)**<br>[Propriedades verificadas](#propriedades) · [Gramática de atributos](#atributos) · [Implementação](#implementacao) | [`gramatica_ag.lark`](caravela/gramatica_ag.lark) |
+| **4** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`metricas.py`](caravela/metricas.py) |
+| **5** | **[Repositório e execução](#execucao)**<br>[Instalação](#instalacao) · [Testes](#testes) · [Limitações](#limitacoes) | [`testes.py`](testes.py) |
+
+---
+
+<a id="desenho"></a>
+## 1. Desenho da linguagem
+
+<a id="dominio"></a>
+### 1.1 Domínio e problema
 
 A Caravela é uma linguagem para descrever cenas 3D do Nau, o motor gráfico que usamos em
 Visualização em Tempo Real (VTR).
@@ -20,12 +46,15 @@ materiais, cenas, câmaras, luzes e passes), e verificar todas essas ligações 
 Nau. Nesta Parte I fizemos o léxico, a gramática e a gramática de atributos. A geração dos
 ficheiros do Nau fica para a Parte II.
 
+<a id="objetivos"></a>
+### 1.2 Objetivos
+
 Temos três objetivos:
 
 1. Escrever menos. Cada elemento da cena é declarado uma vez, num bloco com nome, e o que é
    repetitivo (incluindo os shaders) passa a ser gerado. O projeto mais simples da aula 2 tem 175
    linhas em 4 ficheiros. Em Caravela são 28 linhas
-   ([exemplos/1_iluminacao_simples.cav](exemplos/1_iluminacao_simples.cav)).
+   ([`1_iluminacao_simples.cav`](exemplos/1_iluminacao_simples.cav)).
 2. Detetar os erros antes de chegar ao Nau: verificar se cada nome existe e se é do tipo certo
    (um passe só desenha cenas, o `shininess` só existe na iluminação `phong`, ...).
 3. Fazer cenas com variáveis, ciclos, condições e templates, que o XML do Nau não tem.
@@ -39,7 +68,10 @@ Limitámos a linguagem ao que foi dado nas aulas 2 (iluminação) e 3 (texturas)
 é muito grande. Sombras, vários passes encadeados e shaders escritos à mão ficam de fora. O nome
 vem do próprio motor: a caravela era um barco mais pequeno e mais fácil de manobrar do que a nau.
 
-## Como correr
+<a id="instalacao"></a>
+## 2. Instalação e execução
+
+### 2.1 Instalação
 
 É preciso Python 3.10 ou mais recente. Todos os comandos correm dentro desta pasta.
 
@@ -48,6 +80,17 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+No Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+<a id="execucao"></a>
+### 2.2 Utilização
 
 Verificar um programa:
 
@@ -62,6 +105,9 @@ Se o programa tiver um erro, aparece a mensagem, por exemplo
 `erro semântico: Argumentos do template com tipo errado`. Com `--tokens` vê-se o resultado do
 analisador léxico e com `--arvore` a árvore sintática.
 
+<a id="testes"></a>
+### 2.3 Testes
+
 Correr os testes (são doctests, como nas fichas das aulas):
 
 ```bash
@@ -74,7 +120,8 @@ Calcular as métricas de qualidade:
 python -m caravela.metricas
 ```
 
-## Ficheiros
+<a id="estrutura"></a>
+### 2.4 Estrutura do repositório
 
 ```
 caravela/
@@ -89,7 +136,8 @@ exemplos/             os programas de exemplo
 testes.py             doctests
 ```
 
-## A linguagem
+<a id="linguagem"></a>
+## 3. A linguagem
 
 | Conceito | Em Caravela |
 |---|---|
@@ -146,7 +194,10 @@ um valor e não se pode reatribuir, tal como nas expressões com `let` da EX04. 
 é o da cena que se vai construindo: dentro de um `for` o `let` volta a ser calculado em cada
 iteração (`let ang = i * 360 / n;`).
 
-Temos quatro exemplos em [exemplos/](exemplos/). Três são projetos das aulas de VTR reescritos e o
+<a id="exemplo"></a>
+### 3.1 Exemplo completo
+
+Temos quatro exemplos em [`exemplos/`](exemplos/). Três são projetos das aulas de VTR reescritos e o
 templo é uma cena nova, para mostrar os templates, os ciclos e as condições:
 
 ```
@@ -174,10 +225,13 @@ scene templo {
 
 | Exemplo | Original (aulas de VTR) | Caravela |
 |---|---|---|
-| [Iluminação simples](exemplos/1_iluminacao_simples.cav) (aula 2) | 175 linhas, 4 ficheiros | 28 linhas |
-| [Iluminação por píxel](exemplos/2_iluminacao_por_pixel.cav) (aula 2) | 191 linhas, 4 ficheiros | 34 linhas |
-| [Templo](exemplos/3_templo.cav) (cena nova) | não existe | 38 linhas |
-| [Texturas da Terra](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros, mais 132 do `noise.frag` | 33 linhas |
+| [`Iluminação simples`](exemplos/1_iluminacao_simples.cav) (aula 2) | 175 linhas, 4 ficheiros | 28 linhas |
+| [`Iluminação por píxel`](exemplos/2_iluminacao_por_pixel.cav) (aula 2) | 191 linhas, 4 ficheiros | 34 linhas |
+| [`Templo`](exemplos/3_templo.cav) (cena nova) | não existe | 38 linhas |
+| [`Texturas da Terra`](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros, mais 132 do `noise.frag` | 33 linhas |
+
+<a id="construcoes"></a>
+### 3.2 Construções e requisitos
 
 O enunciado pede alguns requisitos mínimos. Estão aqui:
 
@@ -190,12 +244,16 @@ O enunciado pede alguns requisitos mínimos. Estão aqui:
 | Ramificação e repetição | `if` / `else if` / `else` e `for i in 0..n` |
 | Semântica que a sintaxe não vê | nomes, tipos, argumentos dos templates, ciclos entre `let`, coerência dos materiais |
 
-## Léxico e gramática
+<a id="sintaxe"></a>
+## 4. Especificação léxica e sintática
 
-O léxico e a gramática estão em [caravela/gramatica.lark](caravela/gramatica.lark), escritos em
+<a id="lexico"></a>
+### 4.1 Léxico
+
+O léxico e a gramática estão em [`caravela/gramatica.lark`](caravela/gramatica.lark), escritos em
 EBNF do Lark.
 
-### Estrutura léxica
+#### Estrutura léxica
 
 | Categoria | Expressão regular | Exemplos | Observações |
 |---|---|---|---|
@@ -226,7 +284,8 @@ Há 58 palavras reservadas:
 O `0..n` não se confunde com um número decimal, porque o `NUMBER` obriga a ter dígitos depois do
 ponto. E `-2` dá dois tokens (`SUB` e `NUMBER`), por isso `a - 2` e `a -2` leem-se da mesma maneira.
 
-### Gramática
+<a id="gramatica"></a>
+### 4.2 Gramática
 
 Decisões que tomámos:
 
@@ -244,9 +303,13 @@ Decisões que tomámos:
 - As cores (`white`, `red`, ...) não são palavras reservadas, são `ID`. Estão no ambiente inicial
   da análise semântica, e para acrescentar uma cor não é preciso mexer na gramática.
 
-## Gramática de atributos
+<a id="semantica"></a>
+## 5. Especificação semântica
 
-A gramática de atributos está em [caravela/gramatica_ag.lark](caravela/gramatica_ag.lark) e corre
+<a id="propriedades"></a>
+### 5.1 Propriedades verificadas
+
+A gramática de atributos está em [`caravela/gramatica_ag.lark`](caravela/gramatica_ag.lark) e corre
 com o LarkAG, como na EX04. Verifica estas propriedades (as mensagens são as das condições de
 contexto):
 
@@ -268,7 +331,10 @@ Além disso, a gramática de atributos calcula a unidade de textura de cada cama
 Não verificamos os valores (por exemplo `near > 0`), porque para isso era preciso avaliar as
 expressões com um atributo `val`, como no exemplo das aulas.
 
-### Ideia: os usos sobem, os nomes locais descem
+<a id="atributos"></a>
+### 5.2 Gramática de atributos
+
+#### Ideia: os usos sobem, os nomes locais descem
 
 Cada sítio onde aparece um nome dá um *uso*: o nome e o tipo que se espera. Por exemplo,
 `draw templo;` dá o uso `(templo, scene)`.
@@ -309,7 +375,7 @@ estava no `env`, o uso subia até `start` e dava `Nome não declarado`.
 O `env` de cada item só depende do pai e dos irmãos à esquerda, por isso a gramática é
 L-atribuída (NB06) e os atributos calculam-se numa só visita.
 
-### Diferenças para a gramática da secção anterior
+#### Diferenças para a gramática da secção anterior
 
 Para o LarkAG aceitar a gramática tivemos de a mudar um pouco, sem mudar a linguagem aceite (há um
 doctest que o confirma):
@@ -329,7 +395,15 @@ num sítio onde essas funções não existem. Por isso, em [caravela/semantica.p
 construímos o parser LALR com `ag.getCFG()` e corremos o interpretador que o LarkAG gera
 (`ag.getInterpreterFile()`) junto com as nossas funções.
 
-## Qualidade
+<a id="implementacao"></a>
+### 5.3 Implementação em LarkAG
+
+Para executar a gramática de atributos, o módulo [`caravela/semantica.py`](caravela/semantica.py)
+constrói o parser LALR com `ag.getCFG()` e executa o interpretador gerado pelo LarkAG junto
+com as funções auxiliares do projeto.
+
+<a id="qualidade"></a>
+## 6. Qualidade da linguagem e da gramática
 
 Usámos os fatores e as métricas da NB07 e da EX05. Os números são os que
 `python -m caravela.metricas` imprime.
@@ -415,7 +489,8 @@ O que tiramos destas métricas, com as características da NB07:
 - **Estilo e especificidade.** As regras são declarativas (cada uma diz quanto vale um atributo) e
   a linguagem é de domínio específico.
 
-## Limitações e o que falta
+<a id="limitacoes"></a>
+## 7. Limitações e trabalho futuro
 
 - As mensagens de erro não dizem qual é o nome nem a linha. No LarkAG a mensagem de uma condição
   de contexto é um texto fixo.

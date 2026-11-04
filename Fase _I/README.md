@@ -18,11 +18,13 @@ os atributos, as regras de cálculo e as condições de contexto.
 
 | | Capítulo | Documentos de detalhe |
 |:-:|---|---|
-| **1** | **[Desenho da linguagem](#desenho)**<br>[Domínio e problema](#dominio) · [Objetivos](#objetivos) · [Exemplo](#exemplo) · [Construções](#construcoes) | [`exemplos/`](exemplos/) |
-| **2** | **[Especificação léxica e sintática](#sintaxe)**<br>[Léxico](#lexico) · [Gramática](#gramatica) | [`gramatica.lark`](caravela/gramatica.lark) |
-| **3** | **[Especificação semântica](#semantica)**<br>[Propriedades verificadas](#propriedades) · [Gramática de atributos](#atributos) · [Implementação](#implementacao) | [`gramatica_ag.lark`](caravela/gramatica_ag.lark) |
-| **4** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`metricas.py`](caravela/metricas.py) |
-| **5** | **[Repositório e execução](#execucao)**<br>[Instalação](#instalacao) · [Testes](#testes) · [Limitações](#limitacoes) | [`testes.py`](testes.py) |
+| **1** | **[Desenho da linguagem](#desenho)**<br>[Domínio e problema](#dominio) · [Objetivos](#objetivos) | |
+| **2** | **[Instalação e execução](#instalacao)**<br>[Utilização](#execucao) · [Testes](#testes) · [Estrutura](#estrutura) | [`testes.py`](testes.py) |
+| **3** | **[A linguagem](#linguagem)**<br>[Exemplo](#exemplo) · [Construções](#construcoes) | [`exemplos/`](exemplos/) |
+| **4** | **[Especificação léxica e sintática](#sintaxe)**<br>[Léxico](#lexico) · [Gramática](#gramatica) | [`gramatica.lark`](caravela/gramatica.lark) |
+| **5** | **[Especificação semântica](#semantica)**<br>[Propriedades verificadas](#propriedades) · [Gramática de atributos](#atributos) · [Implementação](#implementacao) | [`gramatica_ag.lark`](caravela/gramatica_ag.lark) |
+| **6** | **[Qualidade da linguagem e da gramática](#qualidade)** | [`metricas.py`](caravela/metricas.py) |
+| **7** | **[Limitações e trabalho futuro](#limitacoes)** | |
 
 ---
 
@@ -37,9 +39,10 @@ Visualização em Tempo Real (VTR).
 
 No Nau não se programa o motor. Cada trabalho é um conjunto de ficheiros de texto que o Nau lê:
 o projeto (`.xml`) com os objetos, a câmara e as luzes, a biblioteca de materiais (`.mlib`) e os
-shaders (`.vert` e `.frag`). Estes ficheiros ligam-se uns aos outros por nomes, e ninguém verifica
-se os nomes batem certo. Se um nome estiver mal escrito, o Nau não dá erro: o objeto aparece
-preto e temos de comparar os ficheiros linha a linha para descobrir porquê.
+shaders (`.vert` e `.frag`). Estes ficheiros ligam-se uns aos outros por nomes. Se o nome de um
+uniform estiver mal escrito, o Nau não pára: a cena abre na mesma, mas com o aspeto errado (cor a
+zero ou textura errada). O aviso só aparece no log, depois de o projeto carregar e no meio de muitas
+outras mensagens.
 
 A ideia da Caravela é escrever a cena num só ficheiro, com os mesmos conceitos (texturas,
 materiais, cenas, câmaras, luzes e passes), e verificar todas essas ligações antes de chegar ao
@@ -52,7 +55,7 @@ ficheiros do Nau fica para a Parte II.
 Temos três objetivos:
 
 1. Escrever menos. Cada elemento da cena é declarado uma vez, num bloco com nome, e o que é
-   repetitivo (incluindo os shaders) passa a ser gerado. O projeto mais simples da aula 2 tem 175
+   repetitivo (incluindo os shaders) será gerado na Parte II. O projeto mais simples da aula 2 tem 175
    linhas em 4 ficheiros. Em Caravela são 28 linhas
    ([`1_iluminacao_simples.cav`](exemplos/1_iluminacao_simples.cav)).
 2. Detetar os erros antes de chegar ao Nau: verificar se cada nome existe e se é do tipo certo
@@ -61,8 +64,9 @@ Temos três objetivos:
 
 A linguagem é pensada para os alunos de VTR e, em geral, para quem monta no Nau as cenas das aulas,
 ou variações delas, e quer saber dos erros nos nomes antes de abrir o Nau, em vez de os procurar à
-mão. Hoje, um nome mal escrito no `.mlib` não dá erro: o Nau desenha na mesma com um valor por
-omissão, e temos de comparar os ficheiros linha a linha para descobrir o que se passou.
+mão. Hoje, um uniform mal escrito no `.mlib` não pára o Nau: desenha na mesma com um valor por
+omissão, e o aviso fica no log, no meio de muitas outras mensagens. A Caravela recusa o programa
+antes de chegar ao Nau.
 
 Limitámos a linguagem ao que foi dado nas aulas 2 (iluminação) e 3 (texturas) de VTR, porque o Nau
 é muito grande. Sombras, vários passes encadeados e shaders escritos à mão ficam de fora. O nome
@@ -180,7 +184,8 @@ no programa.
   declarações é livre, como no XML do Nau. Não pode haver dois nomes globais iguais.
 - Âmbitos locais: o corpo de uma cena, o corpo do `for` (com a variável do ciclo), cada ramo do
   `if` e o corpo de um `template` (com os parâmetros). Um `let` local só existe da sua declaração
-  até ao fim do bloco, e não pode haver dois nomes iguais no mesmo bloco.
+  até ao fim do bloco, e não pode haver dois `let` com o mesmo nome no mesmo bloco. Os nomes dos
+  objetos não são verificados, porque o `box p` de um `for` se repete de propósito.
 - Um nome declarado num bloco interior esconde o mesmo nome de fora (um global, ou um local de um
   bloco que o contém).
 - O corpo de um `template` vê os nomes globais e os seus parâmetros, mas não os nomes locais de
@@ -228,7 +233,7 @@ scene templo {
 | [`Iluminação simples`](exemplos/1_iluminacao_simples.cav) (aula 2) | 175 linhas, 4 ficheiros | 28 linhas |
 | [`Iluminação por píxel`](exemplos/2_iluminacao_por_pixel.cav) (aula 2) | 191 linhas, 4 ficheiros | 34 linhas |
 | [`Templo`](exemplos/3_templo.cav) (cena nova) | não existe | 38 linhas |
-| [`Texturas da Terra`](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros, mais 132 do `noise.frag` | 33 linhas |
+| [`Texturas da Terra`](exemplos/4_terra.cav) (aula 3) | 232 linhas, 4 ficheiros, mais 133 do `noise.frag` | 33 linhas |
 
 <a id="construcoes"></a>
 ### 3.2 Construções e requisitos
@@ -415,10 +420,10 @@ Usámos os fatores e as métricas da NB07 e da EX05. Os números são os que
 | Expressividade | Boa para o domínio. Os conceitos são os de VTR, e o material diz o efeito (`lighting phong`, `layer night`) em vez de como se calcula. Os projetos das aulas ficam cerca de 6 vezes mais curtos. Fora do domínio é fraca: condições sem `and`/`or`, o `for` só avança de 1 em 1. |
 | Documentação | Há comentários de linha e de bloco, este README e os doctests. Não há forma de pôr meta-informação nos comentários. |
 | Unicidade | Quase sempre há uma só forma de fazer cada coisa. Há duas formas de mudar o aspeto num passe (`lighting X for all` e `material X for all`), mas fazem coisas diferentes: a primeira mantém as cores do modelo e a segunda substitui o material. |
-| Consistência | Todas as declarações têm a forma `palavra nome { propriedades }` ou `palavra nome = valor;`, e todas as propriedades acabam em `;`. Os vetores escrevem-se sempre `(x, y, z)`. |
+| Consistência | Quase todas as declarações têm a forma `palavra nome { propriedades }` ou `palavra nome = valor;`. As exceções são `background` e `project`, que não têm nome. As propriedades acabam em `;` ou num bloco `{ }`. Os vetores escrevem-se sempre `(x, y, z)`. |
 | Extensibilidade | Uma cor nova é só acrescentá-la ao ambiente inicial. Um modo de iluminação novo é um terminal, uma alternativa e, se for preciso, uma condição de contexto. Um tipo de valor novo (por exemplo `vec2`) já obriga a mexer em várias regras. |
 | Escalabilidade | É onde se ganha mais face ao XML: com `for`, `if` e `template`, os 8 pilares do templo escrevem-se uma vez, em vez de 8 objetos com as posições calculadas à mão. |
-| Fiabilidade | É a principal melhoria. Os erros são apanhados em três níveis: léxico (`texture` não pode ser um nome), sintaxe (`position 5;`) e semântica (nome não declarado, `draw cam`, `pilar(azul, 3)`). O ponto fraco são as mensagens: não dizem qual é o nome nem em que linha está. |
+| Fiabilidade | É a principal melhoria. Os erros são apanhados em três níveis: léxico (`let a = 1 @ 2;`, porque `@` não é um token), sintaxe (`position 5;`, ou `texture` usado como nome) e semântica (nome não declarado, `draw cam`, `pilar(azul, 3)`). O ponto fraco são as mensagens: não dizem qual é o nome nem em que linha está. |
 | Modularidade | Os templates permitem reutilizar partes de uma cena. Não há módulos nem `import`: um programa é um só ficheiro. |
 
 ### Qualidade da gramática
@@ -472,7 +477,7 @@ O que tiramos destas métricas, com as características da NB07:
 | Métrica | Valor |
 |---|---|
 | Atributos | 108: 102 sintetizados e 6 herdados |
-| Tipo dos atributos | 18 atómicos (`str`, `bool`), 88 estruturados (`list`, `dict`), 2 `any` |
+| Tipo dos atributos | 18 atómicos (`str`, `bool`), 88 estruturados (`list`, `dict`, `tuple`), 2 `any` |
 | Regras de avaliação | 225, das quais 97 só copiam um atributo de um filho para o pai |
 | Condições de contexto | 25 |
 | Funções auxiliares | 10 |
